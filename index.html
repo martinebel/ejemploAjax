@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Ejemplo Ajax</title>
+<link rel="stylesheet" type="text/css" href="css/bootstrap.min.css">
+<link rel="stylesheet" type="text/css" href="css/jquery-ui.min.css"> <!-- esto es para el autocomplete -->
+  </head>
+  <body>
+   
+<div class="container">
+	<div class="row">
+	<div class="col-md-12">
+	 <legend>Ejemplo de JQuery Ajax</legend>
+	 <div class="panel panel-default">
+  <div class="panel-body">
+   En este ejemplo, esta pagina usa funciones Ajax para llamar a un archivo PHP (que puede estar en un servidor web donde se encuentra la BD)
+	 <br>Dicho archivo PHP procesa la consulta del Ajax, realiza las operaciones correspondientes (calculos, consulta a BD, etc)
+	  y devuelve los resultados en formato JSON, que son procesados por el mismo codigo JQuery que realiza la llamada original.
+  </div>
+</div>
+	 </div>
+	 
+	 <div class="col-md-6">
+	 <div class="panel panel-default">
+  <div class="panel-body">
+	 <p>1) Seleccione un Estado de USA</p>
+	 <select id="estados" class="form-control"><option selected disabled>Seleccione un valor</option></select><br>
+	 <pre><strong>Aqui se coloca codigo que se ejecuta en la carga de la pagina.</strong><br>Es el bloque de codigo nro 1</pre>
+	   </div>
+</div>
+
+	 </div>
+	 
+	  <div class="col-md-6">
+	 <div class="panel panel-default">
+  <div class="panel-body">
+	 <p>2) Seleccione una ciudad</p>
+	 <select id="ciudades" class="form-control"></select><br>
+	 <pre><strong>Esta lista se carga al seleccionar un valor en la lista anterior.</strong><br>Es el bloque de codigo nro 2</pre>
+	   </div>
+</div>
+
+	 </div>
+	 
+	  <div class="col-md-12">
+	 <div class="panel panel-default">
+  <div class="panel-body">
+	 <p id="datos"></p>
+	<br>
+	 <pre><strong>Aqui se muestran datos de la ciudad elegida en la lista 2.</strong><br>Es el bloque de codigo nro 3</pre>
+	   </div>
+</div>
+
+	 </div>
+	 
+	 
+	  <div class="col-md-12">
+	 <div class="panel panel-default">
+  <div class="panel-body">
+  <input type="text" class="form-control" id="autocomplete_text">
+	 <p id="datos_autocomplete"></p>
+	<br>
+	 <pre><strong>Esto es el ejemplo de autocomplete. se pueden buscar cuidades.</strong><br>Ejemplos: Los Angeles, Phoenix, Sacramento, Denver, Atlanta...</pre>
+	   </div>
+</div>
+
+	 </div>
+	 </div>
+</div>	 
+	<script type="text/javascript" src="js/jquery-3.1.1.min.js"></script> <!-- este es el jquery. va siempre -->
+	<script  type="text/javascript" src="js/jquery-ui.min.js"></script> <!-- este es para el autocomplete -->
+    <script>
+	//todo este codigo javascript puede estar en un acrhivo aparte y ser "incluido" en el html de la misma manera en la que se incluye el jquery-3.1.1.min.js en la linea de arriba
+	//ejemplo: src="js/mi_codigo.js"
+	/*********************************************************************************************************************************************************************************/
+//SEGMENTO 1: esto, al no estar dentro de ninguna función (sino que es codigo "suelto") se ejecuta al cargar la pagina.
+//hacemos una llamada a la api con un valor GET (action) para obtener un listado de los estados. luego recorremos el resultado devuelto y cargamos la lista 1
+ $.ajax({
+        url: "api.php?action=getEstados",
+        processData: false, 
+		async:false,
+        contentType: "application/json"
+    })
+    .done(function(data, textStatus, jqXHR){
+	var obj = JSON.parse( data ); //convertimos el resultado json en algo que el jquery pueda procesar (en un array)
+		for(var i=0;i<obj.length;i++)
+		{
+			$("#estados").append('<option value="'+obj[i].idestado+'">'+obj[i].nombre+'</option>');
+		}	
+	});
+
+	
+	//SEGMENTO 2:
+	//usamos un evento para detectar el cambio en la lista 1 y hacer una llamada ajax a la api para obtener resultados en base al valor
+	//seleccionado en la lista 1
+$( "#estados" ).change(function() {
+   $.ajax({
+   //pasamos los parametros adecuados: el action y el id del estado seleccionado
+   //$("#estados").val()=el parametro "value" del objeto cuyo id es "estados", 
+   //esto es lo mismo que decir "dame el value de la opcion seleccionada en la lista cuyo id es "estados"
+        url: "api.php?action=getCiudades&idestado="+$("#estados").val(),
+        processData: false, 
+		async:false,
+        contentType: "application/json"
+    })
+    .done(function(data, textStatus, jqXHR){
+	var obj = JSON.parse( data );//convertimos el resultado json en algo que el jquery pueda procesar (en un array)
+	//vaciamos la lista de ciudades y agregamos una opcion "por defecto"
+	$("#ciudades").empty();
+	$("#ciudades").append('<option selected disabled>Seleccione una Ciudad</option>');
+		for(var i=0;i<obj.length;i++)
+		{
+			$("#ciudades").append('<option value="'+obj[i].idciudad+'">'+obj[i].nombre+'</option>');
+		}	
+	});
+});
+
+
+//SEGMENTO 3:
+	//usamos otro evento para detectar el cambio en la lista 2 y hacer una llamada ajax a la api para obtener resultados en base al valor
+	//seleccionado en la lista 2 (los detalles de la ciudad)
+	$( "#ciudades" ).change(function() {
+   $.ajax({
+   //pasamos los parametros adecuados: el action y el id de la ciudad seleccionada
+   //idem al segmento 2
+        url: "api.php?action=getInfo&idciudad="+$("#ciudades").val(),
+        processData: false, 
+		async:false,
+        contentType: "application/json"
+    })
+    .done(function(data, textStatus, jqXHR){
+	var obj = JSON.parse( data );//convertimos el resultado json en algo que el jquery pueda procesar (en un array)
+	//aca no necesitamos un bucle For, porque se supone que hay una sola "linea" (un solo resultado posible)
+	$("#datos").html("ID Ciudad: "+obj[0].idciudad+"<br>Nombre: "+obj[0].nombre+"<br>Apodo: "+obj[0].apodo);
+	});
+});
+
+/***************************************************************************************************************/
+/*EJEMPLO DE AUTOCOMPLETE*/
+$(function() {
+ 
+ 
+    $( "#autocomplete_text" ).autocomplete({
+	//esto es un ajax tambien. le damos la url y solito pasa por parametros el texto que estamos buscando.
+      source: "autocomplete.php",
+      minLength: 2,
+      select: function( event, ui ) {
+	  //esta funcion se ejecuta al seleccionar un item de la lista.
+	  //aca puede ir cualquier cosa (como por ejemplo, otro ajax para traer mas datos)
+	  //ui.item = el elemento seleccionado. tiene los valores que vienen del PHP (id, name, label, etc...)
+        $("#datos_autocomplete").html("ID Ciudad: "+ui.item.id+"<br>Nombre: "+ui.item.value+"<br>Apodo: "+ui.item.apodo);
+      }
+    });
+  });
+  
+
+
+     
+    </script>
+  
+  </body>
+</html>
